@@ -1,0 +1,29 @@
+flowchart TB
+    User(["User<br/>(Next.js app)"])
+
+    E1["CDN edge<br/>US East"]
+    E2["CDN edge<br/>US West"]
+    E3["CDN edge<br/>Europe"]
+
+    VIP["Virtual IP"]
+    LB1["Nginx LB 1<br/>(active)"]
+    LB2["Nginx LB 2<br/>(standby)"]
+
+    APP["App servers 1, 2, 3<br/>(NestJS, stateless)"]
+
+    Redis[("Redis cache<br/>(popular pastes)")]
+    RedisR[("Redis replica")]
+    PG[("PostgreSQL shards A, B, C<br/>(source of truth)")]
+    PGR[("Replicas of each shard<br/>(one is promoted if<br/>its primary fails)")]
+    S3[("S3<br/>(pastes over 10 KB)")]
+
+    User --> E1 & E2 & E3
+    E1 & E2 & E3 --> VIP
+    VIP --> LB1
+    LB1 -. failover .-> LB2
+    LB1 --> APP
+    APP -- "check cache first" --> Redis
+    Redis -. copies .-> RedisR
+    APP -- "write, or read on cache miss" --> PG
+    APP -- "large text" --> S3
+    PG -. copies .-> PGR

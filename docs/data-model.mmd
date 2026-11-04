@@ -1,0 +1,17 @@
+erDiagram
+    USERS ||--o{ PASTES : "creates"
+    USERS {
+        bigint id PK
+        timestamp created_at
+    }
+    PASTES {
+        char7 code PK "7-character short code"
+        bigint user_id FK "empty for anonymous pastes"
+        text text "empty if stored in S3"
+        text s3_key "for pastes over 10 KB"
+        text type "code or plain_text"
+        text language
+        text device_info
+        timestamp created_at
+        timestamp expires_at
+    }

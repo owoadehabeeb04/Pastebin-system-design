@@ -1,0 +1,24 @@
+sequenceDiagram
+    actor U as User
+    participant L as Load balancer
+    participant S as App server
+    participant B as S3
+    participant P as Postgres primary
+
+    U->>L: POST /pastes {text, type, language, expiresIn}
+    L->>S: forward request
+    S->>S: check 10,000 character limit
+    S->>S: generate random 7-character code
+    opt text over 10 KB
+        S->>B: upload text
+    end
+    loop until the insert succeeds
+        S->>P: INSERT row (code is the primary key)
+        alt code already taken
+            P-->>S: duplicate key error
+            S->>S: generate a new code
+        else saved
+            P-->>S: OK
+        end
+    end
+    S-->>U: short link + expiresAt

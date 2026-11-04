@@ -97,6 +97,26 @@ flowchart LR
 - **Sharding:** only one Postgres runs locally. The choice of shard from a code lives in one function (`shardIndex` in [src/shards.ts](src/shards.ts)). Adding shards means adding data sources there.
 - **Migrations:** TypeORM migrations, run once by the `migrate` container before the API containers start.
 
+## Design diagrams
+
+The full design for 30 million users (CDN, active and standby load balancers, sharded Postgres with replicas, S3). This repo builds one local copy of it: Nginx, 3 API containers, Redis, one Postgres and an S3 stand-in. Diagram sources are the `.mmd` files in [docs/](docs/).
+
+**Architecture**
+
+![Architecture](docs/architecture.png)
+
+**Creating a paste**
+
+![Write path](docs/write-path.png)
+
+**Opening a link**
+
+![Read path](docs/read-path.png)
+
+**Data model**
+
+![Data model](docs/data-model.png)
+
 ## Differences from the spec
 
 - **S3 stand-in is SeaweedFS, not MinIO.** MinIO's public Docker images have been removed (Docker Hub: not found, Quay: 401). SeaweedFS speaks the same S3 API and the app only uses standard S3 calls, so switching back is a change of image and endpoint in `docker-compose.yml`.

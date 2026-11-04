@@ -1,0 +1,33 @@
+sequenceDiagram
+    actor U as User
+    participant C as CDN
+    participant L as Load balancer
+    participant S as App server
+    participant R as Redis
+    participant P as Postgres replica
+    participant B as S3
+
+    U->>C: GET /pastes/{code}
+    alt cached at the CDN
+        C-->>U: paste
+    else not cached
+        C->>L: forward request
+        L->>S: forward request
+        S->>R: look up code
+        alt cache hit
+            R-->>S: paste
+        else cache miss
+            S->>P: read row
+            P-->>S: row (+ s3_key if large)
+            opt text stored in S3
+                S->>B: get text
+                B-->>S: text
+            end
+            S->>R: save a copy (expires at expires_at)
+        end
+        alt expires_at has passed
+            S-->>U: 404 Not Found
+        else still valid
+            S-->>U: paste
+        end
+    end
