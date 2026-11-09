@@ -1,0 +1,23 @@
+# Extra API containers for the "how far does it scale" test. Use together with the main file:
+#   docker compose -f docker-compose.yml -f docker-compose.scale.yml up -d
+# Same image and settings as api1; only Nginx's config changes (it must list every API).
+
+x-more: &more
+  extends: { file: docker-compose.yml, service: api1 }
+
+services:
+  api4: *more
+  api5: *more
+  api6: *more
+  api7: *more
+  api8: *more
+  api9: *more
+  api10: *more
+
+  # 10 APIs x 20 pooled connections = 200, but Postgres allows 100 by default ("too many clients").
+  postgres:
+    command: postgres -c max_connections=250
+
+  nginx:
+    volumes: ["./nginx-scale.conf:/etc/nginx/conf.d/default.conf:ro"]
+    depends_on: [api1, api2, api3, api4, api5, api6, api7, api8, api9, api10]

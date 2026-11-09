@@ -15,14 +15,12 @@ export class PastesService {
 
   async create(input: CreateInput, userAgent?: string) {
     const expiresAt = new Date(Date.now() + input.expiresIn * 1000);
-    // Over 10 KB (bytes, not characters): the text goes to S3 first, Postgres keeps only the key.
-    // The key is random, not the code, because the code is not decided until the insert succeeds.
+
     let s3Key: string | null = null;
     if (Buffer.byteLength(input.text) > MAX_INLINE_BYTES) {
       s3Key = `pastes/${randomUUID()}`;
       await this.storage.put(s3Key, input.text);
     }
-    // Insert and let Postgres reject a duplicate. No "check first": two servers could pick the same code.
     for (let i = 0; i < MAX_CODE_TRIES; i++) {
       const code = this.codes.next();
       try {
@@ -37,21 +35,19 @@ export class PastesService {
         });
         return { code, url: `${config().publicBaseUrl}/pastes/${code}`, expiresAt: expiresAt.toISOString() };
       } catch (e: any) {
-        if ((e.driverError?.code ?? e.code) !== '23505') throw e; // 23505 = duplicate key
+        if ((e.driverError?.code ?? e.code) !== '23505') throw e; 
       }
     }
-    if (s3Key) await this.storage.deleteMany([s3Key]).catch(() => {}); // ponytail: a crash here leaves an orphan file; a sweep of S3 vs Postgres would catch it
+    if (s3Key) await this.storage.deleteMany([s3Key]).catch(() => {}); 
     throw new InternalServerErrorException('could not find a free code');
   }
 
-  // Read-through cache: Redis first, then Postgres, then save a copy in Redis.
   async get(code: string): Promise<Paste> {
     if (!CODE_RE.test(code)) throw new NotFoundException();
 
     const cached = await this.cache.get(code);
-    if (cached === null) throw new NotFoundException(); // cached "does not exist"
+    if (cached === null) throw new NotFoundException(); 
     if (cached) {
-      // Redis TTL should already have removed it, but never trust that alone.
       if (new Date(cached.expiresAt).getTime() <= Date.now()) throw new NotFoundException();
       return cached;
     }

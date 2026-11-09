@@ -65,6 +65,8 @@ loadtest/run.sh failure false   # same, cache OFF
 
 The script turns the rate limit off, restarts the API containers with the chosen cache setting, and clears Redis first. Use Git Bash (or WSL) on Windows.
 
+To try 10 API containers instead of 3, put `SCALE=1` in front, e.g. `SCALE=1 loadtest/run.sh load true`.
+
 Default rates are the design targets: 350 writes/s and 3,500 reads/s. Scale down with `READ_RATE`, `WRITE_RATE`, `DURATION`, e.g.
 `READ_RATE=500 WRITE_RATE=50 DURATION=60s loadtest/run.sh load true`.
 
